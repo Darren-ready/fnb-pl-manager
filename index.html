@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F&B P&L Manager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root{
+    --bg:#0f0f10;--surface:#1a1a1c;--surface2:#242427;--surface3:#2e2e32;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+    --text:#f0efe8;--muted:#888680;
+    --income:#3ecf8e;--cost:#f06a50;--accent:#f5c842;--profit:#7eb8f7;
+    --income-bg:rgba(62,207,142,0.08);--cost-bg:rgba(240,106,80,0.08);
+    --accent-bg:rgba(245,200,66,0.08);--profit-bg:rgba(126,184,247,0.08);
+    --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--r:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;z-index:10;}
+  .brand{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+  .brand-name{font-size:13px;font-weight:600;letter-spacing:0.05em;color:var(--accent);text-transform:uppercase;}
+  .brand-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .sync-row{display:flex;align-items:center;gap:6px;margin-top:8px;}
+  .dot-s{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .dot-s.ok{background:var(--income);}
+  .dot-s.err{background:var(--cost);}
+  .dot-s.spin{background:var(--accent);animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .sync-txt{font-size:11px;color:var(--muted);}
+  .sync-txt.ok{color:var(--income);}
+  .sync-txt.err{color:var(--cost);}
+
+  .nav-label{font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;padding:0 20px;margin:12px 0 6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--muted);font-size:13px;transition:all .15s;border-left:2px solid transparent;}
+  .nav-item:hover{color:var(--text);background:rgba(255,255,255,.04);}
+  .nav-item.active{color:var(--text);border-left-color:var(--accent);background:rgba(245,200,66,.05);}
+
+  .month-wrap{margin:auto 0 0;padding:16px 20px 0;border-top:1px solid var(--border);}
+  .month-wrap label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;}
+  select.month-sel{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:6px;font-size:13px;font-family:var(--sans);cursor:pointer;outline:none;}
+
+  /* Main */
+  .main{margin-left:220px;flex:1;padding:32px;}
+  .ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;}
+  .pt{font-size:22px;font-weight:600;}
+  .ps{font-size:13px;color:var(--muted);margin-top:2px;}
+  .ha{display:flex;gap:8px;flex-shrink:0;}
+
+  /* Banner */
+  .banner{background:rgba(245,200,66,.06);border:1px solid rgba(245,200,66,.25);border-radius:var(--r);padding:20px 24px;margin-bottom:24px;}
+  .banner h3{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:6px;}
+  .banner p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:12px;}
+  .banner-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .banner-row input{flex:1;min-width:200px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 14px;border-radius:7px;font-size:12px;font-family:var(--mono);outline:none;}
+  .banner-row input:focus{border-color:var(--accent);}
+
+  /* Warning box */
+  .warn-box{background:rgba(240,106,80,.07);border:1px solid rgba(240,106,80,.25);border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:var(--cost);line-height:1.6;}
+  .warn-box strong{font-weight:600;}
+
+  /* Cards */
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;}
+  .clabel{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .cval{font-size:22px;font-weight:500;font-family:var(--mono);}
+  .cval.inc{color:var(--income);}
+  .cval.cost{color:var(--cost);}
+  .cval.prf{color:var(--profit);}
+  .cval.acc{color:var(--accent);}
+  .csub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  /* Section */
+  .sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px;overflow:hidden;}
+  .sec-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+  .sec-t{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;}
+  .dot.inc{background:var(--income);}
+  .dot.cost{background:var(--cost);}
+
+  table{width:100%;border-collapse:collapse;}
+  th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:10px 20px;text-align:left;border-bottom:1px solid var(--border);}
+  td{padding:11px 20px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .amt{font-family:var(--mono);font-size:13px;text-align:right;}
+  .amt.inc{color:var(--income);}
+  .amt.cost{color:var(--cost);}
+  .tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;}
+  .tag.cash{background:rgba(245,200,66,.12);color:var(--accent);}
+  .tag.bank{background:rgba(126,184,247,.12);color:var(--profit);}
+  .tag.platform{background:rgba(62,207,142,.12);color:var(--income);}
+  .tag.giro{background:rgba(126,184,247,.12);color:var(--profit);}
+  .tag.it{background:rgba(62,207,142,.12);color:var(--income);}
+  .tag.ct{background:rgba(240,106,80,.12);color:var(--cost);}
+  .empty{padding:36px 20px;text-align:center;color:var(--muted);font-size:13px;}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;font-size:12px;font-weight:500;font-family:var(--sans);cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+  .bp{background:var(--accent);color:#1a1600;}
+  .bp:hover{background:#ffd54f;}
+  .bg{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+  .bg:hover{color:var(--text);border-color:rgba(255,255,255,.2);}
+  .bd{background:transparent;color:var(--cost);border:1px solid rgba(240,106,80,.3);}
+  .bd:hover{background:var(--cost-bg);}
+  .sm{padding:5px 10px;font-size:11px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  /* Modal */
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;}
+  .ov.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+  .modal-lg{width:620px;}
+  .mtitle{font-size:16px;font-weight:600;margin-bottom:20px;}
+  .mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:24px;}
+
+  /* Forms */
+  .fr{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  .fr.full{grid-template-columns:1fr;}
+  .fg{display:flex;flex-direction:column;gap:6px;}
+  .fg label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;}
+  .fg input,.fg select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:var(--sans);outline:none;transition:border-color .15s;}
+  .fg input:focus,.fg select:focus{border-color:var(--accent);}
+  .fg select option{background:var(--surface);}
+  .ttoggle{display:flex;gap:8px;margin-bottom:20px;}
+  .tbtn{flex:1;padding:10px;border-radius:8px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);font-size:13px;font-weight:500;font-family:var(--sans);transition:all .15s;text-align:center;}
+  .tbtn.ai{background:var(--income-bg);border-color:var(--income);color:var(--income);}
+  .tbtn.ac{background:var(--cost-bg);border-color:var(--cost);color:var(--cost);}
+
+  /* Item rows */
+  .ir{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .iname{flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:var(--sans);outline:none;}
+  .iname:focus{border-color:var(--accent);}
+  .iamt{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;font-family:var(--mono);outline:none;}
+  .iamt:focus{border-color:var(--accent);}
+  .stot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+
+  /* Report */
+  .rcard{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:32px;max-width:540px;}
+  .rbiz{font-size:20px;font-weight:600;}
+  .rper{font-size:13px;color:var(--muted);margin-top:3px;}
+  .rdiv{border:none;border-top:1px solid var(--border);margin:18px 0;}
+  .plst{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-bottom:10px;border-bottom:1px solid var(--border);}
+  .plrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .plrow.tot{font-weight:600;font-size:14px;border-bottom:none;padding:14px 0 0;margin-top:4px;}
+  .plrow.net{background:var(--profit-bg);border-radius:8px;padding:14px 16px;border:1px solid rgba(126,184,247,.2);font-size:15px;font-weight:600;margin-top:16px;}
+  .plrow.net.loss{background:var(--cost-bg);border-color:rgba(240,106,80,.2);}
+  .plv{font-family:var(--mono);}
+  .plv.i{color:var(--income);}
+  .plv.c{color:var(--cost);}
+  .sgrid{display:flex;gap:12px;margin-top:16px;}
+  .sbox{flex:1;background:var(--surface2);border-radius:8px;padding:14px 16px;}
+  .slbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;}
+  .sval{font-size:20px;font-family:var(--mono);}
+
+  /* Views */
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* Script block */
+  .sblock{background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:11px;color:#c9d1d9;line-height:1.7;margin:10px 0;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto;}
+  .step{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;font-size:13px;line-height:1.6;}
+  .snum{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-width:22px;background:var(--accent);color:#1a1600;border-radius:50%;font-size:10px;font-weight:700;margin-top:2px;}
+  code{background:var(--surface3);color:var(--accent);padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:11px;}
+
+  /* Notif */
+  .notif{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--text);transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;max-width:320px;}
+  .notif.show{transform:translateY(0);opacity:1;}
+  .notif.err{border-color:rgba(240,106,80,.4);color:var(--cost);}
+
+  @media print{
+    .sidebar,.ha,.banner,.ov,.notif{display:none!important;}
+    .main{margin-left:0;padding:0;}
+    body{background:white;color:black;}
+    .rcard{border:none;max-width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-name">F&amp;B Manager</div>
+    <div class="brand-sub">P&L Tracker v4</div>
+    <div class="sync-row">
+      <div class="dot-s" id="sdot"></div>
+      <span class="sync-txt" id="stxt">Not connected</span>
+    </div>
+  </div>
+  <div class="nav-label">Views</div>
+  <div class="nav-item active" onclick="showView('dashboard',this)"><span style="width:18px;text-align:center">◈</span> Dashboard</div>
+  <div class="nav-item" onclick="showView('entries',this)"><span style="width:18px;text-align:center">≡</span> All Entries</div>
+  <div class="nav-item" onclick="showView('wages',this)"><span style="width:18px;text-align:center">◎</span> Staff Wages</div>
+  <div class="nav-item" onclick="showView('fixed',this)"><span style="width:18px;text-align:center">◇</span> Fixed Costs</div>
+  <div class="nav-item" onclick="showView('report',this)"><span style="width:18px;text-align:center">▤</span> P&amp;L Report</div>
+  <div class="month-wrap">
+    <label>Active Month</label>
+    <select class="month-sel" id="msel" onchange="changeMonth()"></select>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="ph">
+      <div><div class="pt" id="dash-title">Dashboard</div><div class="ps">Live from Google Sheets</div></div>
+      <div class="ha">
+        <button class="btn bg" onclick="loadAll()">↻ Refresh</button>
+        <button class="btn bp" onclick="openEntry()">+ Add Entry</button>
+      </div>
+    </div>
+    <div id="banner" class="banner" style="display:none">
+      <h3>⚡ Connect to Google Sheets</h3>
+      <p>Paste your Apps Script Web App URL below. Make sure <strong>"Who has access" is set to "Anyone"</strong> (not "Anyone with Google account").</p>
+      <div class="banner-row">
+        <input type="text" id="urlinput" placeholder="https://script.google.com/macros/s/.../exec">
+        <button class="btn bp" onclick="saveUrl()">Connect</button>
+        <button class="btn bg" onclick="openModal('setup-modal')">Setup guide</button>
+      </div>
+    </div>
+    <div id="access-warn" class="warn-box" style="display:none">
+      ⚠️ <strong>Access setting wrong.</strong> In Apps Script → Manage Deployments → Edit → change <strong>"Who has access"</strong> from "Anyone with Google account" to <strong>"Anyone"</strong> → redeploy. Then click Refresh.
+    </div>
+    <div class="cards">
+      <div class="card"><div class="clabel">Total Revenue</div><div class="cval inc" id="c-rev">$0.00</div><div class="csub" id="c-rev-sub">0 entries</div></div>
+      <div class="card"><div class="clabel">Total Costs</div><div class="cval cost" id="c-cost">$0.00</div><div class="csub">incl. wages &amp; fixed</div></div>
+      <div class="card"><div class="clabel">Net Profit</div><div class="cval prf" id="c-prf">$0.00</div><div class="csub">after all expenses</div></div>
+      <div class="card"><div class="clabel">Profit Margin</div><div class="cval acc" id="c-margin">0.0%</div><div class="csub">revenue basis</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><div class="sec-t"><span class="dot inc"></span> Income Breakdown</div></div>
+      <table><thead><tr><th>Date</th><th>Source</th><th>Description</th><th>Method</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody id="inc-tb"><tr><td colspan="5" class="empty">—</td></tr></tbody></table>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><div class="sec-t"><span class="dot cost"></span> Cost Breakdown</div></div>
+      <table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Method</th><th style="text-align:right">Amount</th></tr></thead>
+      <tbody id="cost-tb"><tr><td colspan="5" class="empty">—</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- ALL ENTRIES -->
+  <div id="view-entries" class="view">
+    <div class="ph">
+      <div><div class="pt">All Entries</div><div class="ps">Every record for this month</div></div>
+      <div class="ha"><button class="btn bg" onclick="loadAll()">↻ Refresh</button><button class="btn bp" onclick="openEntry()">+ Add Entry</button></div>
+    </div>
+    <div class="sec">
+      <table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Method</th><th style="text-align:right">Amount</th><th></th></tr></thead>
+      <tbody id="all-tb"><tr><td colspan="7" class="empty">No entries.</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <!-- WAGES -->
+  <div id="view-wages" class="view">
+    <div class="ph">
+      <div><div class="pt">Staff Wages</div><div class="ps">Set once — auto-included in every month's P&L</div></div>
+      <button class="btn bp" onclick="addWage()">+ Add Staff</button>
+    </div>
+    <div class="sec" style="padding:20px 24px">
+      <div id="wlist"></div>
+      <div class="stot"><span style="color:var(--muted);font-size:13px">Total monthly wages</span><span class="plv" style="color:var(--cost);font-size:16px;font-weight:600" id="wtot">$0.00</span></div>
+      <div style="margin-top:14px"><button class="btn bp" onclick="saveWages()">Save Wages</button></div>
+    </div>
+  </div>
+
+  <!-- FIXED -->
+  <div id="view-fixed" class="view">
+    <div class="ph">
+      <div><div class="pt">Fixed Costs</div><div class="ps">Rent, utilities — auto-included every month</div></div>
+      <button class="btn bp" onclick="addFixed()">+ Add Fixed Cost</button>
+    </div>
+    <div class="sec" style="padding:20px 24px">
+      <div id="flist"></div>
+      <div class="stot"><span style="color:var(--muted);font-size:13px">Total fixed / month</span><span class="plv" style="color:var(--cost);font-size:16px;font-weight:600" id="ftot">$0.00</span></div>
+      <div style="margin-top:14px"><button class="btn bp" onclick="saveFixed()">Save Fixed Costs</button></div>
+    </div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="view-report" class="view">
+    <div class="ph">
+      <div><div class="pt">P&amp;L Report</div><div class="ps" id="rpt-sub">Monthly summary</div></div>
+      <div class="ha"><button class="btn bg" onclick="loadAll()">↻ Refresh</button><button class="btn bg" onclick="window.print()">⎙ Print / PDF</button></div>
+    </div>
+    <div class="rcard">
+      <div style="margin-bottom:24px"><div class="rbiz">Restaurant P&amp;L Summary</div><div class="rper" id="rperiod">—</div></div>
+      <hr class="rdiv">
+      <div class="plst">Revenue</div>
+      <div class="plrow"><span>POS — Cash Sales</span><span class="plv i" id="r-pos">$0.00</span></div>
+      <div class="plrow"><span>PayNow / Bank (Sales)</span><span class="plv i" id="r-pn">$0.00</span></div>
+      <div class="plrow"><span>GrabFood (net payout)</span><span class="plv i" id="r-grab">$0.00</span></div>
+      <div class="plrow"><span>FoodPanda (net payout)</span><span class="plv i" id="r-fp">$0.00</span></div>
+      <div class="plrow"><span>Other Income</span><span class="plv i" id="r-oi">$0.00</span></div>
+      <div class="plrow tot"><span>Total Revenue</span><span class="plv i" id="r-trev">$0.00</span></div>
+      <hr class="rdiv">
+      <div class="plst">Variable Costs</div>
+      <div class="plrow"><span>Materials &amp; Supplies</span><span class="plv c" id="r-mat">$0.00</span></div>
+      <div class="plrow"><span>Packaging</span><span class="plv c" id="r-pak">$0.00</span></div>
+      <div class="plrow"><span>Other Variable Cost</span><span class="plv c" id="r-oc">$0.00</span></div>
+      <hr class="rdiv">
+      <div class="plst">Staff Wages</div>
+      <div id="r-wrows"></div>
+      <div class="plrow tot"><span>Total Wages</span><span class="plv c" id="r-twages">$0.00</span></div>
+      <hr class="rdiv">
+      <div class="plst">Fixed Overheads</div>
+      <div id="r-frows"></div>
+      <div class="plrow tot"><span>Total Fixed</span><span class="plv c" id="r-tfixed">$0.00</span></div>
+      <hr class="rdiv">
+      <div class="plrow tot" style="font-size:14px"><span>Total Costs</span><span class="plv c" id="r-tcost">$0.00</span></div>
+      <div class="plrow net" id="r-netrow"><span id="r-netlbl">Net Profit</span><span class="plv" id="r-net">$0.00</span></div>
+      <div class="sgrid">
+        <div class="sbox"><div class="slbl">Profit Margin</div><div class="sval" style="color:var(--accent)" id="r-margin">0%</div></div>
+        <div class="sbox"><div class="slbl">Cost Ratio</div><div class="sval" style="color:var(--cost)" id="r-cratio">0%</div></div>
+      </div>
+      <div style="margin-top:20px;font-size:11px;color:var(--muted)" id="r-gen"></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Entry Modal -->
+<div class="ov" id="entry-modal">
+  <div class="modal">
+    <div class="mtitle">Add Entry</div>
+    <div class="ttoggle">
+      <button class="tbtn ai" id="btn-inc" onclick="setType('income')">↑ Income</button>
+      <button class="tbtn" id="btn-cost" onclick="setType('cost')">↓ Cost</button>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Date</label><input type="date" id="f-date"></div>
+      <div class="fg"><label id="catlbl">Source</label><select id="f-cat"></select></div>
+    </div>
+    <div class="fr full">
+      <div class="fg"><label>Description / Supplier</label><input type="text" id="f-desc" placeholder="e.g. Veg supplier, lunch sales..."></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Amount (SGD)</label><input type="number" id="f-amt" placeholder="0.00" step="0.01" min="0"></div>
+      <div class="fg"><label>Payment Method</label>
+        <select id="f-meth">
+          <option value="cash">Cash</option>
+          <option value="bank">Bank Transfer / PayNow</option>
+          <option value="platform">Platform Payout</option>
+          <option value="giro">GIRO / Auto-debit</option>
+        </select>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn bg" onclick="closeModal('entry-modal')">Cancel</button>
+      <button class="btn bp" id="save-btn" onclick="saveEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Modal -->
+<div class="ov" id="setup-modal">
+  <div class="modal modal-lg">
+    <div class="mtitle">📋 Setup Guide — Connect Google Sheets</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px">One-time setup, ~10 minutes. Free Google account only.</p>
+
+    <div class="step"><span class="snum">1</span><span>Go to <a href="https://sheets.google.com" target="_blank" style="color:var(--accent)">sheets.google.com</a> → create new sheet → name it <strong>F&B P&L</strong>.</span></div>
+    <div class="step"><span class="snum">2</span><span>Click <code>Extensions</code> → <code>Apps Script</code>. Delete everything and paste this script:</span></div>
+    <div class="sblock" id="script-txt"></div>
+    <div style="display:flex;justify-content:flex-end;margin:6px 0 14px"><button class="btn bg sm" onclick="copyScript()">📋 Copy script</button></div>
+
+    <div class="step"><span class="snum">3</span><span>Click <code>Deploy</code> → <code>New deployment</code> → Type: <strong>Web app</strong> → Execute as: <strong>Me</strong> → Who has access: <strong>Anyone</strong> (⚠️ must be "Anyone", NOT "Anyone with Google account") → <strong>Deploy</strong> → authorise.</span></div>
+    <div class="step"><span class="snum">4</span><span>Copy the <strong>Web app URL</strong> → paste into the Connect box on the dashboard.</span></div>
+    <div class="step"><span class="snum">5</span><span>Share the Google Sheet with your boss's Gmail — they can view all data live anytime.</span></div>
+
+    <div class="mfoot"><button class="btn bp" onclick="closeModal('setup-modal')">Done</button></div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<!-- Hidden iframe for POST (bypasses CORS entirely) -->
+<iframe name="post-target" style="display:none"></iframe>
+
+<script>
+// ══════════════════════════════════════════════
+// APPS SCRIPT (updated — supports JSONP)
+// ══════════════════════════════════════════════
+const SCRIPT_CODE = `// F&B P&L Manager — Apps Script Backend v4
+// Deploy: Web App | Execute as: Me | Who has access: Anyone
+
+function doGet(e) {
+  const p = e.parameter;
+  const cb = p.callback; // JSONP support
+  let out;
+  if (p.action === 'getEntries') out = getEntries(p.month || '');
+  else if (p.action === 'getWages') out = getList('Wages');
+  else if (p.action === 'getFixed') out = getList('Fixed');
+  else out = { error: 'unknown' };
+  const json = JSON.stringify(out);
+  const body = cb ? cb + '(' + json + ')' : json;
+  const mime = cb ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON;
+  return ContentService.createTextOutput(body).setMimeType(mime);
+}
+
+function doPost(e) {
+  const d = JSON.parse(e.postData.contents);
+  if (d.action === 'addEntry')    addEntry(d.entry);
+  if (d.action === 'deleteEntry') delEntry(d.id);
+  if (d.action === 'saveWages')   saveList('Wages', d.list);
+  if (d.action === 'saveFixed')   saveList('Fixed', d.list);
+  return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+}
+
+function sheet(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    if (name === 'Entries') sh.appendRow(['id','date','month','type','category','desc','amount','method']);
+    if (name === 'Wages' || name === 'Fixed') sh.appendRow(['name','amount']);
+  }
+  return sh;
+}
+
+function getEntries(month) {
+  const rows = sheet('Entries').getDataRange().getValues().slice(1);
+  return rows
+    .filter(r => {
+      if (!r[0]) return false;
+      if (!month) return true;
+      // r[2] may be a Date object or string — normalise to YYYY-MM
+      const m = r[2] instanceof Date
+        ? Utilities.formatDate(r[2], Session.getScriptTimeZone(), 'yyyy-MM')
+        : String(r[2]).slice(0,7);
+      return m === month;
+    })
+    .map(r => {
+      // r[1] date may be a Date object
+      const dateStr = r[1] instanceof Date
+        ? Utilities.formatDate(r[1], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+        : String(r[1]);
+      const monthStr = r[2] instanceof Date
+        ? Utilities.formatDate(r[2], Session.getScriptTimeZone(), 'yyyy-MM')
+        : String(r[2]).slice(0,7);
+      return {id:String(r[0]),date:dateStr,month:monthStr,type:r[3],category:r[4],desc:r[5],amount:Number(r[6]),method:r[7]};
+    });
+}
+
+function addEntry(e) {
+  // Store date and month as plain strings to avoid Sheets auto-converting to Date
+  sheet('Entries').appendRow([Date.now(), e.date, e.month, e.type, e.category, e.desc||'', e.amount, e.method]);
+}
+
+function delEntry(id) {
+  const sh = sheet('Entries');
+  const v = sh.getDataRange().getValues();
+  for (let i = v.length-1; i >= 1; i--) {
+    if (String(v[i][0]) === String(id)) { sh.deleteRow(i+1); break; }
+  }
+}
+
+function getList(name) {
+  const rows = sheet(name).getDataRange().getValues().slice(1);
+  return rows.filter(r=>r[0]).map(r=>({name:r[0],amount:Number(r[1])}));
+}
+
+function saveList(name, list) {
+  const sh = sheet(name);
+  sh.clearContents();
+  sh.appendRow(['name','amount']);
+  list.forEach(item => sh.appendRow([item.name, Number(item.amount)||0]));
+}`;
+
+document.getElementById('script-txt').textContent = SCRIPT_CODE;
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let URL = localStorage.getItem('fnb_url') || '';
+let MONTH = localStorage.getItem('fnb_month') || nowMonth();
+let etype = 'income';
+let cache = { entries:[], wages:[], fixed:[] };
+const ICATS = ['POS — Cash Sales','PayNow / Bank (Sales)','GrabFood Payout','FoodPanda Payout','Other Income'];
+const CCATS = ['Materials & Supplies','Packaging','Other Variable Cost'];
+
+function nowMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function fmtM(ym){const[y,m]=ym.split('-');return new Date(y,m-1,1).toLocaleString('en-SG',{month:'long',year:'numeric'});}
+function fmt(n){return'$'+(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function tx(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+
+// ══════════════════════════════════════════════
+// SYNC STATUS
+// ══════════════════════════════════════════════
+function setSync(state, label){
+  const d=document.getElementById('sdot'), t=document.getElementById('stxt');
+  d.className='dot-s '+state;
+  t.textContent=label;
+  t.className='sync-txt '+state;
+}
+
+// ══════════════════════════════════════════════
+// API — JSONP GET (works from file://)
+//       Hidden form POST (works from file://)
+// ══════════════════════════════════════════════
+function apiGet(params) {
+  return new Promise((resolve, reject) => {
+    if (!URL) return reject(new Error('no url'));
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const qs = new URLSearchParams({...params, callback: cbName}).toString();
+    const sc = document.createElement('script');
+    const timer = setTimeout(() => {
+      sc.remove(); delete window[cbName];
+      reject(new Error('timeout — check URL and access setting'));
+    }, 15000);
+    window[cbName] = (data) => {
+      clearTimeout(timer); sc.remove(); delete window[cbName];
+      resolve(data);
+    };
+    sc.onerror = () => {
+      clearTimeout(timer); sc.remove(); delete window[cbName];
+      reject(new Error('script load error'));
+    };
+    sc.src = URL + '?' + qs + '&_t=' + Date.now();
+    document.head.appendChild(sc);
+  });
+}
+
+// POST via hidden form — no CORS issues, no preflight
+// We store the payload in a temp global, iframe picks it up via message
+let pendingPost = null;
+let postResolvers = [];
+
+function apiPost(body) {
+  return new Promise((resolve) => {
+    // Store data in a way the hidden form can submit
+    // We use a data: URL approach: create a temporary form, submit to iframe
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = URL;
+    form.target = 'post-target';
+    form.style.display = 'none';
+    // Apps Script accepts text/plain body via hidden textarea trick
+    // Actually we just submit and ignore response (no-cors equivalent)
+    const inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'data'; // Apps Script reads e.postData.contents
+    inp.value = JSON.stringify(body);
+    form.appendChild(inp);
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => { form.remove(); resolve({ok:true}); }, 1000);
+  });
+}
+
+// Fallback: use fetch with no-cors for POST
+async function apiPostFetch(body) {
+  return fetch(URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(body)
+  });
+}
+
+// ══════════════════════════════════════════════
+// NOTE: For POST we'll use fetch no-cors + form fallback
+// Apps Script doPost reads e.postData.contents
+// ══════════════════════════════════════════════
+async function post(body) {
+  try {
+    await apiPostFetch(body);
+  } catch(e) {
+    await apiPost(body);
+  }
+}
+
+// ══════════════════════════════════════════════
+// LOAD
+// ══════════════════════════════════════════════
+async function loadAll() {
+  if (!URL) { showBanner(); renderAll(); return; }
+  setSync('spin', 'Syncing...');
+  document.getElementById('access-warn').style.display = 'none';
+
+  try {
+    const [entries, wages, fixed] = await Promise.all([
+      apiGet({action:'getEntries', month:MONTH}),
+      apiGet({action:'getWages'}),
+      apiGet({action:'getFixed'})
+    ]);
+    cache.entries = Array.isArray(entries) ? entries : [];
+    cache.wages   = Array.isArray(wages)   ? wages   : [];
+    cache.fixed   = Array.isArray(fixed)   ? fixed   : [];
+    setSync('ok', 'Synced ✓');
+    document.getElementById('banner').style.display = 'none';
+  } catch(err) {
+    setSync('err', 'Sync failed');
+    // Show specific guidance based on error
+    const msg = err.message || '';
+    if (msg.includes('timeout') || msg.includes('script load')) {
+      // Likely access setting issue
+      document.getElementById('access-warn').style.display = 'block';
+      notify('Sync failed — see the warning above for fix.', true);
+    } else {
+      notify('Cannot connect. Check URL is correct and access = Anyone.', true);
+    }
+    showBanner();
+  }
+  renderAll();
+}
+
+function showBanner(){
+  document.getElementById('banner').style.display = 'block';
+  document.getElementById('urlinput').value = URL;
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderAll(){
+  buildMsel(); renderDash(); renderAllEntries(); renderWages(); renderFixed(); renderReport();
+}
+
+function mtag(m){return m==='cash'?'cash':m==='platform'?'platform':m==='giro'?'giro':'bank';}
+
+function renderDash(){
+  const inc=cache.entries.filter(e=>e.type==='income');
+  const cos=cache.entries.filter(e=>e.type==='cost');
+  const tw=cache.wages.reduce((a,w)=>a+(+w.amount||0),0);
+  const tf=cache.fixed.reduce((a,f)=>a+(+f.amount||0),0);
+  const tr=inc.reduce((a,e)=>a+(+e.amount||0),0);
+  const tv=cos.reduce((a,e)=>a+(+e.amount||0),0);
+  const tc=tv+tw+tf, profit=tr-tc, margin=tr>0?(profit/tr*100):0;
+
+  tx('dash-title',fmtM(MONTH));
+  tx('c-rev',fmt(tr)); tx('c-rev-sub',inc.length+' entries');
+  tx('c-cost',fmt(tc));
+  const cp=document.getElementById('c-prf'); cp.textContent=fmt(profit); cp.style.color=profit>=0?'var(--profit)':'var(--cost)';
+  tx('c-margin',margin.toFixed(1)+'%');
+
+  document.getElementById('inc-tb').innerHTML=inc.length
+    ?[...inc].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<tr>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${e.date}</td>
+      <td>${e.category}</td><td style="color:var(--muted)">${e.desc||'—'}</td>
+      <td><span class="tag ${mtag(e.method)}">${e.method}</span></td>
+      <td class="amt inc">${fmt(+e.amount)}</td></tr>`).join('')
+    :'<tr><td colspan="5" class="empty">No income entries this month.</td></tr>';
+
+  let ch=[...cos].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<tr>
+    <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${e.date}</td>
+    <td>${e.category}</td><td style="color:var(--muted)">${e.desc||'—'}</td>
+    <td><span class="tag ${mtag(e.method)}">${e.method}</span></td>
+    <td class="amt cost">${fmt(+e.amount)}</td></tr>`).join('');
+  cache.wages.forEach(w=>{ch+=`<tr><td style="color:var(--muted);font-size:12px">Fixed</td><td>Staff Wages</td><td style="color:var(--muted)">${w.name}</td><td><span class="tag giro">giro</span></td><td class="amt cost">${fmt(+w.amount)}</td></tr>`;});
+  cache.fixed.forEach(f=>{ch+=`<tr><td style="color:var(--muted);font-size:12px">Fixed</td><td>Fixed Overhead</td><td style="color:var(--muted)">${f.name}</td><td><span class="tag giro">giro</span></td><td class="amt cost">${fmt(+f.amount)}</td></tr>`;});
+  document.getElementById('cost-tb').innerHTML=ch||'<tr><td colspan="5" class="empty">No cost entries this month.</td></tr>';
+}
+
+function renderAllEntries(){
+  const s=[...cache.entries].sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('all-tb').innerHTML=s.length
+    ?s.map(e=>`<tr>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${e.date}</td>
+      <td><span class="tag ${e.type==='income'?'it':'ct'}">${e.type}</span></td>
+      <td>${e.category}</td><td style="color:var(--muted)">${e.desc||'—'}</td>
+      <td><span class="tag ${mtag(e.method)}">${e.method}</span></td>
+      <td class="amt ${e.type==='income'?'inc':'cost'}">${fmt(+e.amount)}</td>
+      <td><button class="btn bd sm" onclick="delEntry('${e.id}')">Delete</button></td></tr>`).join('')
+    :'<tr><td colspan="7" class="empty">No entries for this month.</td></tr>';
+}
+
+function renderWages(){
+  document.getElementById('wlist').innerHTML=cache.wages.length
+    ?cache.wages.map((w,i)=>`<div class="ir">
+      <input class="iname" type="text" value="${w.name||''}" placeholder="Staff name" oninput="cache.wages[${i}].name=this.value;updW()">
+      <input class="iamt" type="number" value="${w.amount||0}" step="0.01" oninput="cache.wages[${i}].amount=+this.value||0;updW()">
+      <button class="btn bd sm" onclick="rmWage(${i})">✕</button></div>`).join('')
+    :'<div style="color:var(--muted);font-size:13px;padding:8px 0">No staff added yet.</div>';
+  updW();
+}
+
+function renderFixed(){
+  document.getElementById('flist').innerHTML=cache.fixed.length
+    ?cache.fixed.map((f,i)=>`<div class="ir">
+      <input class="iname" type="text" value="${f.name||''}" placeholder="e.g. Rental" oninput="cache.fixed[${i}].name=this.value;updF()">
+      <input class="iamt" type="number" value="${f.amount||0}" step="0.01" oninput="cache.fixed[${i}].amount=+this.value||0;updF()">
+      <button class="btn bd sm" onclick="rmFixed(${i})">✕</button></div>`).join('')
+    :'<div style="color:var(--muted);font-size:13px;padding:8px 0">No fixed costs yet.</div>';
+  updF();
+}
+
+function renderReport(){
+  const inc=cache.entries.filter(e=>e.type==='income');
+  const cos=cache.entries.filter(e=>e.type==='cost');
+  const bc=(arr,cat)=>arr.filter(e=>e.category===cat).reduce((a,e)=>a+(+e.amount||0),0);
+  const pos=bc(inc,'POS — Cash Sales'),pn=bc(inc,'PayNow / Bank (Sales)'),
+        gr=bc(inc,'GrabFood Payout'),fp=bc(inc,'FoodPanda Payout'),oi=bc(inc,'Other Income');
+  const tr=pos+pn+gr+fp+oi;
+  const mt=bc(cos,'Materials & Supplies'),pk=bc(cos,'Packaging'),oc=bc(cos,'Other Variable Cost');
+  const tw=cache.wages.reduce((a,w)=>a+(+w.amount||0),0);
+  const tf=cache.fixed.reduce((a,f)=>a+(+f.amount||0),0);
+  const tc=mt+pk+oc+tw+tf,net=tr-tc,margin=tr>0?(net/tr*100):0;
+  const lbl=fmtM(MONTH);
+  tx('rpt-sub',lbl);tx('rperiod',lbl);
+  tx('r-pos',fmt(pos));tx('r-pn',fmt(pn));tx('r-grab',fmt(gr));tx('r-fp',fmt(fp));tx('r-oi',fmt(oi));tx('r-trev',fmt(tr));
+  tx('r-mat',fmt(mt));tx('r-pak',fmt(pk));tx('r-oc',fmt(oc));
+  tx('r-twages',fmt(tw));tx('r-tfixed',fmt(tf));tx('r-tcost',fmt(tc));
+  tx('r-net',fmt(Math.abs(net)));tx('r-netlbl',net>=0?'Net Profit':'Net Loss');
+  tx('r-margin',margin.toFixed(1)+'%');
+  tx('r-cratio',tr>0?(tc/tr*100).toFixed(1)+'%':'0%');
+  tx('r-gen','Last refreshed: '+new Date().toLocaleString('en-SG'));
+  const nr=document.getElementById('r-netrow');if(nr)nr.className='plrow net'+(net<0?' loss':'');
+  document.getElementById('r-wrows').innerHTML=cache.wages.map(w=>`<div class="plrow"><span>${w.name||'—'}</span><span class="plv c">${fmt(+w.amount)}</span></div>`).join('');
+  document.getElementById('r-frows').innerHTML=cache.fixed.map(f=>`<div class="plrow"><span>${f.name||'—'}</span><span class="plv c">${fmt(+f.amount)}</span></div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// ENTRY
+// ══════════════════════════════════════════════
+function openEntry(){
+  setType('income');
+  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-desc').value='';
+  document.getElementById('f-amt').value='';
+  openModal('entry-modal');
+}
+
+function setType(t){
+  etype=t;
+  document.getElementById('btn-inc').className='tbtn'+(t==='income'?' ai':'');
+  document.getElementById('btn-cost').className='tbtn'+(t==='cost'?' ac':'');
+  document.getElementById('catlbl').textContent=t==='income'?'Source':'Category';
+  document.getElementById('f-cat').innerHTML=(t==='income'?ICATS:CCATS).map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+async function saveEntry(){
+  const date=document.getElementById('f-date').value;
+  const cat=document.getElementById('f-cat').value;
+  const desc=document.getElementById('f-desc').value.trim();
+  const amt=parseFloat(document.getElementById('f-amt').value);
+  const meth=document.getElementById('f-meth').value;
+  if(!date||isNaN(amt)||amt<=0){notify('Please fill in date and a valid amount.',true);return;}
+  const month=date.slice(0,7);
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true;btn.textContent='Saving...';
+  try{
+    await post({action:'addEntry',entry:{date,month,type:etype,category:cat,desc,amount:amt,method:meth}});
+    MONTH=month;localStorage.setItem('fnb_month',MONTH);
+    closeModal('entry-modal');
+    notify('Entry saved ✓ — reloading in 3s...');
+    setTimeout(loadAll,3000);
+  }catch(e){notify('Save failed.',true);}
+  finally{btn.disabled=false;btn.textContent='Save Entry';}
+}
+
+async function delEntry(id){
+  if(!confirm('Delete this entry?'))return;
+  try{await post({action:'deleteEntry',id});notify('Deleted — reloading...');setTimeout(loadAll,3000);}
+  catch(e){notify('Delete failed',true);}
+}
+
+// ══════════════════════════════════════════════
+// WAGES / FIXED
+// ══════════════════════════════════════════════
+function addWage(){cache.wages.push({name:'',amount:0});renderWages();}
+function rmWage(i){cache.wages.splice(i,1);renderWages();}
+function updW(){tx('wtot',fmt(cache.wages.reduce((a,w)=>a+(+w.amount||0),0)));}
+async function saveWages(){try{await post({action:'saveWages',list:cache.wages});notify('Wages saved ✓ — reloading...');setTimeout(loadAll,3000);}catch(e){notify('Save failed',true);}}
+
+function addFixed(){cache.fixed.push({name:'',amount:0});renderFixed();}
+function rmFixed(i){cache.fixed.splice(i,1);renderFixed();}
+function updF(){tx('ftot',fmt(cache.fixed.reduce((a,f)=>a+(+f.amount||0),0)));}
+async function saveFixed(){try{await post({action:'saveFixed',list:cache.fixed});notify('Fixed costs saved ✓ — reloading...');setTimeout(loadAll,2000);}catch(e){notify('Save failed',true);}}
+
+// ══════════════════════════════════════════════
+// MONTH / URL / UTILS
+// ══════════════════════════════════════════════
+function buildMsel(){
+  const sel=document.getElementById('msel');
+  const months=new Set(cache.entries.map(e=>e.month));
+  const d=new Date();
+  for(let i=-2;i<=3;i++){const dd=new Date(d.getFullYear(),d.getMonth()+i,1);months.add(`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}`);}
+  sel.innerHTML=[...months].sort().reverse().map(m=>`<option value="${m}" ${m===MONTH?'selected':''}>${fmtM(m)}</option>`).join('');
+}
+function changeMonth(){MONTH=document.getElementById('msel').value;localStorage.setItem('fnb_month',MONTH);loadAll();}
+
+function saveUrl(){
+  const u=document.getElementById('urlinput').value.trim();
+  if(!u.startsWith('https://script.google.com')){notify('Paste the full Apps Script URL.',true);return;}
+  URL=u;localStorage.setItem('fnb_url',URL);
+  document.getElementById('access-warn').style.display='none';
+  notify('URL saved — connecting...');
+  loadAll();
+}
+
+function copyScript(){
+  navigator.clipboard.writeText(SCRIPT_CODE)
+    .then(()=>notify('Script copied ✓'))
+    .catch(()=>notify('Copy failed — please select and copy manually',true));
+}
+
+function showView(name,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  el.classList.add('active');
+}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+let nt;
+function notify(msg,isErr=false){
+  const el=document.getElementById('notif');
+  el.textContent=msg;el.className='notif show'+(isErr?' err':'');
+  clearTimeout(nt);nt=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// INIT
+if(!URL)showBanner();
+loadAll();
+</script>
+</body>
+</html>
