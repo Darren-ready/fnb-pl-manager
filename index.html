@@ -195,14 +195,14 @@
 <!-- Sidebar -->
 <nav class="sidebar">
   <div class="brand">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div class="brand-name">F&amp;B Manager</div>
-      <button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()" title="Hide sidebar">✕</button>
-    </div>
-    <div class="brand-sub">P&L Tracker v4</div>
-    <div class="sync-row">
-      <div class="dot-s" id="sdot"></div>
-      <span class="sync-txt" id="stxt">Not connected</span>
+    <div class="brand-name">F&amp;B Manager</div>
+    <div class="brand-sub" style="margin-bottom:8px">P&L Tracker v4</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="sync-row" style="margin-top:0">
+        <div class="dot-s" id="sdot"></div>
+        <span class="sync-txt" id="stxt">Not connected</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleSidebar()" title="Hide sidebar">✕</button>
     </div>
   </div>
   <div class="nav-label">Views</div>
@@ -834,6 +834,14 @@ function buildMsel(){
 }
 function changeMonth(){MONTH=document.getElementById('msel').value;localStorage.setItem('fnb_month',MONTH);loadAll();}
 
+function saveUrlFromSettings(){
+  const inp=document.getElementById('settings-url');
+  const u=(inp?inp.value:'').trim();
+  if(!u.startsWith('https://script.google.com')){notify('Paste the full Apps Script URL.',true);return;}
+  URL=u;localStorage.setItem('fnb_url',URL);
+  notify('Saved — connecting...');
+  loadAll();
+}
 function saveUrl(){
   const u=document.getElementById('urlinput').value.trim();
   if(!u.startsWith('https://script.google.com')){notify('Paste the full Apps Script URL.',true);return;}
@@ -850,6 +858,11 @@ function copyScript(){
 }
 
 function showView(name,el){
+  if(name==='settings'){const i=document.getElementById('settings-url');if(i)i.value=URL||'';}
+  if (name === 'settings') {
+    const inp = document.getElementById('settings-url');
+    if (inp) inp.value = URL || '';
+  }
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
