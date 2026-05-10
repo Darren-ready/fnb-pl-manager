@@ -194,11 +194,12 @@
 <div class="app" id="app">
 <!-- Sidebar -->
 <nav class="sidebar">
-  <div class="brand" style="display:flex;align-items:flex-start;justify-content:space-between">
-    <div><div class="brand-name">F&amp;B Manager</div>
-    <div class="brand-sub">P&L Tracker v4</div>
+  <div class="brand">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="brand-name">F&amp;B Manager</div>
+      <button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()" title="Hide sidebar">✕</button>
     </div>
-    <button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()" title="Hide sidebar" style="margin-top:2px">✕</button>
+    <div class="brand-sub">P&L Tracker v4</div>
     <div class="sync-row">
       <div class="dot-s" id="sdot"></div>
       <span class="sync-txt" id="stxt">Not connected</span>
@@ -210,6 +211,7 @@
   <div class="nav-item" onclick="showView('wages',this)"><span style="width:18px;text-align:center">◎</span> Staff Wages</div>
   <div class="nav-item" onclick="showView('fixed',this)"><span style="width:18px;text-align:center">◇</span> Fixed Costs</div>
   <div class="nav-item" onclick="showView('report',this)"><span style="width:18px;text-align:center">▤</span> P&amp;L Report</div>
+  <div class="nav-item" onclick="showView('settings',this)"><span style="width:18px;text-align:center">⚙</span> Settings</div>
   <div class="month-wrap">
     <label>Active Month</label>
     <select class="month-sel" id="msel" onchange="changeMonth()"></select>
@@ -334,6 +336,29 @@
         <div class="sbox"><div class="slbl">Cost Ratio</div><div class="sval" style="color:var(--cost)" id="r-cratio">0%</div></div>
       </div>
       <div style="margin-top:20px;font-size:11px;color:var(--muted)" id="r-gen"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="view-settings" class="view">
+    <div class="ph">
+      <div><div class="pt">Settings</div><div class="ps">Configure your Google Sheets connection</div></div>
+    </div>
+    <div class="sec" style="padding:24px 28px;max-width:600px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:16px;color:var(--text)">Google Sheets URL</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">Paste your Apps Script Web App URL here. Must be deployed with <strong style="color:var(--text)">Execute as: Me</strong> and <strong style="color:var(--text)">Who has access: Anyone</strong>.</div>
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <input type="text" id="settings-url" style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 14px;border-radius:7px;font-size:12px;font-family:var(--mono);outline:none;" placeholder="https://script.google.com/macros/s/.../exec">
+        <button class="btn bp" onclick="saveUrlFromSettings()">Save & Connect</button>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:16px;font-size:12px;color:var(--muted);line-height:1.8">
+        <div style="color:var(--text);font-weight:500;margin-bottom:8px">⚠️ If entries aren't showing:</div>
+        <div>1. Open your Google Sheet → Extensions → Apps Script</div>
+        <div>2. Make sure the script is opened FROM the Sheet (not from script.google.com)</div>
+        <div>3. Paste the latest Apps Script code</div>
+        <div>4. Deploy → New deployment → Web App → <strong style="color:var(--accent)">Anyone</strong> → Deploy</div>
+        <div>5. Paste the new URL above and click Save & Connect</div>
+      </div>
     </div>
   </div>
 
