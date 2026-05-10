@@ -171,7 +171,7 @@
   .notif.show{transform:translateY(0);opacity:1;}
   .notif.err{border-color:rgba(240,106,80,.4);color:var(--cost);}
 
-  /* Sidebar toggle */
+
   .toggle-btn{position:fixed;top:16px;left:16px;z-index:200;width:30px;height:30px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted);transition:all .2s;}
   .toggle-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2);}
   .app.collapsed .sidebar{width:0;padding:0;opacity:0;pointer-events:none;}
@@ -192,8 +192,6 @@
 </head>
 <body>
 <div class="app" id="app">
-<button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
-
 <!-- Sidebar -->
 <nav class="sidebar">
   <div class="brand">
@@ -222,7 +220,7 @@
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
     <div class="ph">
-      <div><div class="pt" id="dash-title">Dashboard</div><div class="ps">Live from Google Sheets</div></div>
+      <div style="display:flex;align-items:center;gap:12px"><button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">☰</button><div><div class="pt" id="dash-title">Dashboard</div><div class="ps">Live from Google Sheets</div></div></div>
       <div class="ha">
         <button class="btn bg" onclick="loadAll()">↻ Refresh</button>
         <button class="btn bp" onclick="openEntry()">+ Add Entry</button>
@@ -499,6 +497,15 @@ const ICATS = ['POS — Cash Sales','PayNow / Bank (Sales)','GrabFood Payout','F
 const CCATS = ['Materials & Supplies','Packaging','Other Variable Cost'];
 
 function nowMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function cleanDate(d) {
+  if (!d) return '—';
+  // Handle full Date string like "Sat May 09 2026 00:00:00 GMT+0800"
+  if (String(d).length > 15) {
+    const dt = new Date(d);
+    if (!isNaN(dt)) return dt.toISOString().slice(0,10);
+  }
+  return String(d).slice(0,10);
+}
 function fmtM(ym){const[y,m]=ym.split('-');return new Date(y,m-1,1).toLocaleString('en-SG',{month:'long',year:'numeric'});}
 function fmt(n){return'$'+(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
 function tx(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
@@ -655,14 +662,14 @@ function renderDash(){
 
   document.getElementById('inc-tb').innerHTML=inc.length
     ?[...inc].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<tr>
-      <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${e.date}</td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${cleanDate(e.date)}</td>
       <td>${e.category}</td><td style="color:var(--muted)">${e.desc||'—'}</td>
       <td><span class="tag ${mtag(e.method)}">${e.method}</span></td>
       <td class="amt inc">${fmt(+e.amount)}</td></tr>`).join('')
     :'<tr><td colspan="5" class="empty">No income entries this month.</td></tr>';
 
   let ch=[...cos].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<tr>
-    <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${e.date}</td>
+    <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${cleanDate(e.date)}</td>
     <td>${e.category}</td><td style="color:var(--muted)">${e.desc||'—'}</td>
     <td><span class="tag ${mtag(e.method)}">${e.method}</span></td>
     <td class="amt cost">${fmt(+e.amount)}</td></tr>`).join('');
@@ -675,7 +682,7 @@ function renderAllEntries(){
   const s=[...cache.entries].sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('all-tb').innerHTML=s.length
     ?s.map(e=>`<tr>
-      <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${e.date}</td>
+      <td style="color:var(--muted);font-family:var(--mono);font-size:12px">${cleanDate(e.date)}</td>
       <td><span class="tag ${e.type==='income'?'it':'ct'}">${e.type}</span></td>
       <td>${e.category}</td><td style="color:var(--muted)">${e.desc||'—'}</td>
       <td><span class="tag ${mtag(e.method)}">${e.method}</span></td>
