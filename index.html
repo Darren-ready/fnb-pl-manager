@@ -171,6 +171,17 @@
   .notif.show{transform:translateY(0);opacity:1;}
   .notif.err{border-color:rgba(240,106,80,.4);color:var(--cost);}
 
+  /* Sidebar toggle */
+  .toggle-btn{position:fixed;top:16px;left:16px;z-index:200;width:30px;height:30px;border-radius:7px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--muted);transition:all .2s;}
+  .toggle-btn:hover{color:var(--text);border-color:rgba(255,255,255,.2);}
+  .app.collapsed .sidebar{width:0;padding:0;opacity:0;pointer-events:none;}
+  .app.collapsed .main{margin-left:0;}
+  .sidebar{transition:width .25s,padding .25s,opacity .2s;overflow:hidden;}
+  .main{transition:margin-left .25s;}
+  .main{padding-left:32px;}
+  .app:not(.collapsed) .main{padding-left:32px;}
+  .app.collapsed .main{padding-left:52px;}
+
   @media print{
     .sidebar,.ha,.banner,.ov,.notif{display:none!important;}
     .main{margin-left:0;padding:0;}
@@ -180,7 +191,8 @@
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
+<button class="toggle-btn" id="toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
 
 <!-- Sidebar -->
 <nav class="sidebar">
@@ -817,6 +829,19 @@ function notify(msg,isErr=false){
   const el=document.getElementById('notif');
   el.textContent=msg;el.className='notif show'+(isErr?' err':'');
   clearTimeout(nt);nt=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// ── Sidebar toggle ──
+function toggleSidebar() {
+  const app = document.getElementById('app');
+  const btn = document.getElementById('toggle-btn');
+  const collapsed = app.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '☰' : '✕';
+  localStorage.setItem('fnb_sidebar_collapsed', collapsed ? '1' : '0');
+}
+if (localStorage.getItem('fnb_sidebar_collapsed') === '1') {
+  document.getElementById('app').classList.add('collapsed');
+  document.getElementById('toggle-btn').textContent = '☰';
 }
 
 // INIT
